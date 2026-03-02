@@ -1,0 +1,249 @@
+html<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro de Entrega de Tickets</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .container { background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 100%; max-width: 480px; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; padding: 28px 32px; }
+    .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .header p { font-size: 13px; opacity: 0.8; }
+    .sync-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 4px 10px; margin-top: 8px; }
+    .sync-dot { width: 7px; height: 7px; background: #69f0ae; border-radius: 50%; animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .form-body { padding: 32px; }
+    .field { margin-bottom: 24px; }
+    label { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5f6368; margin-bottom: 8px; }
+    .input-hint { font-size: 11px; color: #9aa0a6; margin-top: 6px; }
+    .input-hint span { color: #d93025; font-weight: 700; }
+    input[type="text"], input[type="number"], input[type="password"] {
+      width: 100%; padding: 14px 16px; border: 2px solid #e8eaed; border-radius: 10px;
+      font-size: 16px; color: #1a1a2e; outline: none; transition: border-color 0.2s;
+    }
+    input:focus { border-color: #1a73e8; }
+    input.input-error { border-color: #d93025; }
+    input::placeholder { color: #bdc1c6; }
+    #cantidad { font-size: 22px; font-weight: 700; text-align: center; }
+    .btn-submit { width: 100%; padding: 16px; background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; font-size: 16px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-submit:hover:not(:disabled) { opacity: 0.9; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    .btn-submit.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-text { pointer-events: none; }
+    .records-section { border-top: 1px solid #e8eaed; padding: 24px 32px 32px; }
+    .records-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .records-header h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #5f6368; }
+    .clear-btn { font-size: 12px; color: #d93025; background: none; border: none; cursor: pointer; font-weight: 600; }
+    .record-item { background: #f8f9fa; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.25s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .record-left .factura { font-weight: 700; font-size: 15px; }
+    .record-left .valor { font-size: 13px; color: #5f6368; margin-top: 2px; }
+    .record-sync { font-size: 11px; margin-top: 2px; }
+    .record-sync.ok { color: #34a853; }
+    .record-sync.fail { color: #d93025; }
+    .record-right { text-align: right; }
+    .record-qty { font-size: 22px; font-weight: 800; color: #1a73e8; }
+    .record-label { font-size: 11px; color: #9aa0a6; }
+    .empty-state { text-align: center; color: #bdc1c6; padding: 16px 0; font-size: 14px; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: white; border-radius: 16px; padding: 32px 28px; width: 90%; max-width: 340px; box-shadow: 0 8px 40px rgba(0,0,0,0.2); text-align: center; }
+    .modal-icon { font-size: 36px; margin-bottom: 12px; }
+    .modal h3 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+    .modal p { font-size: 13px; color: #5f6368; margin-bottom: 20px; }
+    .pin-input { width: 100%; padding: 14px; border: 2px solid #e8eaed; border-radius: 10px; font-size: 22px; text-align: center; letter-spacing: 8px; outline: none; transition: border-color 0.2s; }
+    .pin-input:focus { border-color: #1a73e8; }
+    .pin-input.error { border-color: #d93025; animation: shake 0.3s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .pin-error-msg { color: #d93025; font-size: 12px; font-weight: 600; margin-top: 8px; min-height: 18px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid #e8eaed; background: white; color: #5f6368; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-cancel:hover { background: #f8f9fa; }
+    .btn-confirm { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #d93025; color: white; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-confirm:hover { opacity: 0.9; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #323232; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; transition: transform 0.3s; z-index: 300; white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🎟️ Entrega de Tickets</h1>
+    <p>Registre cada entrega con los datos del recibo</p>
+    <div class="sync-badge"><div class="sync-dot"></div> Sincronizado con Google Sheets</div>
+  </div>
+
+  <div class="form-body">
+    <div class="field">
+      <label>Número de Factura</label>
+      <input type="text" id="factura" placeholder="Ej: FAC-2024-001" />
+    </div>
+    <div class="field">
+      <label>Valor del Ticket</label>
+      <input type="number" id="valor" placeholder="Ej: 50000" min="0" />
+    </div>
+    <div class="field">
+      <label>Cantidad de Tickets Entregados</label>
+      <input type="number" id="cantidad" placeholder="1 – 10" min="1" max="10" oninput="validarCantidad()" />
+      <div class="input-hint">Ingresa un número entre 1 y <span>10</span></div>
+    </div>
+    <button class="btn-submit" id="btnRegistrar" onclick="registrar()">
+      <div class="spinner"></div>
+      <span class="btn-text">✅ Registrar Entrega</span>
+    </button>
+  </div>
+
+  <div class="records-section">
+    <div class="records-header">
+      <h2>Entregas Registradas</h2>
+      <button class="clear-btn" onclick="abrirModalPin()">🔒 Borrar todo</button>
+    </div>
+    <div id="records"><div class="empty-state">No hay registros aún</div></div>
+  </div>
+</div>
+
+<!-- Modal PIN -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-icon">🔐</div>
+    <h3>Acceso restringido</h3>
+    <p>Ingresa el PIN para borrar todos los registros</p>
+    <input type="password" class="pin-input" id="pinInput" maxlength="4" placeholder="••••"
+      oninput="resetPinError()" onkeydown="if(event.key==='Enter') confirmarPin()" />
+    <div class="pin-error-msg" id="pinError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmarPin()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwUeS3Y3xQGDzbOIfhFkmiSehYxDTu0KvpguI_VShoyVXETR5SFM2Hutg8pzIPqC9SJ/exec';
+  const PIN_CORRECTO = '1950';
+  let registros = [];
+
+  function validarCantidad() {
+    const inp = document.getElementById('cantidad');
+    const v = parseInt(inp.value);
+    if (inp.value === '') { inp.classList.remove('input-error'); return; }
+    if (isNaN(v) || v < 1 || v > 10) {
+      inp.classList.add('input-error');
+    } else {
+      inp.classList.remove('input-error');
+    }
+  }
+
+  function fmt(v) { return Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }); }
+  function fechaHora() { return new Date().toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+
+  async function registrar() {
+    const f = document.getElementById('factura').value.trim();
+    const v = document.getElementById('valor').value.trim();
+    const c = parseInt(document.getElementById('cantidad').value);
+
+    if (!f) { showToast('⚠️ Ingresa el número de factura'); return; }
+    if (!v || isNaN(v) || Number(v) < 0) { showToast('⚠️ Ingresa un valor válido'); return; }
+    if (!c || isNaN(c) || c < 1 || c > 10) { showToast('⚠️ La cantidad debe ser entre 1 y 10'); document.getElementById('cantidad').classList.add('input-error'); return; }
+
+    const btn = document.getElementById('btnRegistrar');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    document.querySelector('.btn-text').textContent = '';
+
+    const registro = { fecha: fechaHora(), factura: f, valor: Number(v), cantidad: c };
+
+    let sincronizado = false;
+    try {
+      await fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registro)
+      });
+      sincronizado = true;
+    } catch (err) {
+      sincronizado = false;
+    }
+
+    registros.unshift({ ...registro, hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }), sync: sincronizado });
+    renderRegistros();
+
+    document.getElementById('factura').value = '';
+    document.getElementById('valor').value = '';
+    document.getElementById('cantidad').value = '';
+    document.getElementById('cantidad').classList.remove('input-error');
+
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    document.querySelector('.btn-text').textContent = '✅ Registrar Entrega';
+
+    showToast(sincronizado ? '☁️ Guardado en Google Sheets' : '⚠️ Registrado localmente (sin conexión)');
+  }
+
+  function renderRegistros() {
+    const c = document.getElementById('records');
+    if (!registros.length) { c.innerHTML = '<div class="empty-state">No hay registros aún</div>'; return; }
+    c.innerHTML = registros.map(r => `
+      <div class="record-item">
+        <div class="record-left">
+          <div class="factura">📄 ${r.factura}</div>
+          <div class="valor">${fmt(r.valor)} por ticket · ${r.hora}</div>
+          <div class="record-sync ${r.sync ? 'ok' : 'fail'}">${r.sync ? '☁️ Guardado en Sheets' : '⚠️ Sin sincronizar'}</div>
+        </div>
+        <div class="record-right">
+          <div class="record-qty">${r.cantidad}</div>
+          <div class="record-label">tickets</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function abrirModalPin() {
+    if (!registros.length) { showToast('⚠️ No hay registros para borrar'); return; }
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinError').textContent = '';
+    document.getElementById('pinInput').classList.remove('error');
+    document.getElementById('modalOverlay').classList.add('active');
+    setTimeout(() => document.getElementById('pinInput').focus(), 100);
+  }
+
+  function cerrarModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+  function confirmarPin() {
+    const pin = document.getElementById('pinInput').value;
+    if (pin === PIN_CORRECTO) {
+      registros = []; renderRegistros(); cerrarModal();
+      showToast('🗑️ Registros eliminados localmente');
+    } else {
+      const inp = document.getElementById('pinInput');
+      inp.classList.add('error');
+      document.getElementById('pinError').textContent = 'PIN incorrecto. Inténtalo de nuevo.';
+      inp.value = '';
+      setTimeout(() => inp.classList.remove('error'), 400);
+    }
+  }
+
+  function resetPinError() {
+    document.getElementById('pinError').textContent = '';
+    document.getElementById('pinInput').classList.remove('error');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModal();
+  });
+</script>
+</body>
+</html>
